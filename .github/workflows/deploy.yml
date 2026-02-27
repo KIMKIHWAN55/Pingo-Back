@@ -32,7 +32,7 @@ jobs:
           docker build -t ${{ secrets.DOCKER_USERNAME }}/pingo-back:latest .
           docker push ${{ secrets.DOCKER_USERNAME }}/pingo-back:latest
 
-      # 5. AWS EC2에 접속해서 배포 명령 실행
+      # 5. AWS EC2에 접속해서 배포 명령 실행.
       - name: Deploy to EC2
         uses: appleboy/ssh-action@master
         with:
