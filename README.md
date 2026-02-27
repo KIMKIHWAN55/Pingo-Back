@@ -14,8 +14,8 @@ Pingo는 위치 기반으로 주변 사용자를 추천하고, 키워드 필터�
 - **Database**: Oracle, MongoDB
 
 ## 📌 깃허브 주소
-- [Frontend Repository](https://github.com/2Shiro/pingo_front)
-- [Backend Repository](https://github.com/2Shiro/pingo_back)
+- [Frontend Repository](https://github.com/KIMKIHWAN55/Pingo-Front)
+- [Backend Repository](https://github.com/KIMKIHWAN55/Pingo-Back)
 
 ## 📌 담당 역할
 - **회원가입**: 이메일 인증을 통한 회원가입 기능 구현
