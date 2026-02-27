@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  oracle:
+    image: gvenzl/oracle-xe:slim
+    container_name: local-oracle
+    ports:
+      - "1521:1521"
+    environment:
+      - ORACLE_PASSWORD=Qwer1234
+      - APP_USER=pingo
+      - APP_PASSWORD=Qwer1234
+
+  mongodb:
+    image: mongo:latest
+    container_name: local-mongo
+    ports:
+      - "27017:27017"

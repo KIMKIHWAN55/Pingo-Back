@@ -1,0 +1,54 @@
+name: Pingo Back Server Deploy
+
+on:
+  push:
+    branches: [ "main" ]  # main 브랜치에 푸시될 때 작동
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. 코드 체크아웃
+      - uses: actions/checkout@v3
+
+      # 2. 자바 세팅 (JDK 17 기준, 사용중인 버전에 맞춰 수정)
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      # 3. Gradle 빌드 (테스트 제외하려면 -x test 추가)
+      - name: Build with Gradle
+        run: |
+          chmod +x gradlew
+          ./gradlew clean build -x test
+
+      # 4. 도커 이미지 빌드 및 도커 허브 푸시
+      - name: Docker Build & Push
+        run: |
+          docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/pingo-back:latest .
+          docker push ${{ secrets.DOCKER_USERNAME }}/pingo-back:latest
+
+      # 5. AWS EC2에 접속해서 배포 명령 실행
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.EC2_HOST }}       # EC2 IP 주소
+          username: ubuntu                  # EC2 사용자명 (보통 ec2-user 또는 ubuntu)
+          key: ${{ secrets.EC2_KEY }}         # PEM 키 내용
+          script: |
+            # 기존 컨테이너 중지 및 삭제 (에러 무시)
+            docker stop pingo-back || true
+            docker rm pingo-back || true
+            
+            # 기존 이미지 삭제 (용량 확보)
+            docker rmi ${{ secrets.DOCKER_USERNAME }}/pingo-back:latest || true
+            
+            # 새 이미지 받기
+            docker pull ${{ secrets.DOCKER_USERNAME }}/pingo-back:latest
+            
+            # 새 컨테이너 실행 (환경변수나 포트 설정은 상황에 맞게 수정)
+            docker run -d -p 8080:8080 --name pingo-back ${{ secrets.DOCKER_USERNAME }}/pingo-back:latest
