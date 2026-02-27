@@ -1,4 +1,4 @@
-![Image](https://github.com/user-attachments/assets/bf67fe15-c1a2-4918-83c8-8b3a0f3d5e13)
+
 # Pingo
 
 Pingo는 위치 기반으로 주변 사용자를 추천하고, 키워드 필터링을 통해 이상형을 찾을 수 있는 소개팅 앱입니다. </br>
