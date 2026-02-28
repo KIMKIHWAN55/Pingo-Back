@@ -10,7 +10,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 @Configuration
 public class RedisConfig {
 
-    private final String redisHost = "13.125.102.57"; // AWS Redis IP
+    private final String redisHost = "43.200.7.166"; // AWS Redis IP
     private final int redisPort = 6379;
 
     @Bean
