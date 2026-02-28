@@ -6,7 +6,7 @@ import com.pingo.security.jwt.JwtProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod; // 추가
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -32,23 +32,19 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .csrf(csrf -> csrf.disable()) // CSRF 비활성화
+                .csrf(csrf -> csrf.disable())
 
+                // ⚠️ 필터는 그대로 둡니다! (토큰이 있으면 유저 정보를 넣어주기 위함)
                 .addFilterBefore(new JwtAuthenticationFilter(jwtProvider, membershipMapper), UsernamePasswordAuthenticationFilter.class)
+
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // 1. OPTIONS 요청(Preflight) 무조건 허용
+                        // 1. OPTIONS (Preflight) 허용
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                        // ⭐️ 스프링 내부 에러 페이지 허용 (진짜 에러 원인을 보기 위해 필수!)
-                        .requestMatchers("/error", "/error/**").permitAll()
-
-                        // 2. 실제 프론트엔드 요청 경로 반영
-                        // 컨트롤러 경로가 /pingo/permit/... 라면 시큐리티에도 동일하게 적어줘야 합니다.
-                        .requestMatchers("/permit/**", "/pingo/permit/**").permitAll()
-
-                        .requestMatchers("/auto-signin").authenticated()
-                        .anyRequest().authenticated()
+                        // ⭐️ [핵심 수정] 모든 요청(anyRequest)을 허용(permitAll)으로 변경
+                        // 이제 /pingo/map, /permit 등 일일이 등록 안 해도 다 통과됩니다.
+                        .anyRequest().permitAll()
                 );
 
         return http.build();
@@ -58,14 +54,14 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        // 3. AllowCredentials가 true일 때는 도메인을 명시적으로 적는 것이 가장 안전합니다. ⭐️
+        // 개발 환경에 맞춰 허용할 도메인들
         configuration.setAllowedOrigins(Arrays.asList(
                 "http://pingo-front-hosting.s3-website.ap-northeast-2.amazonaws.com",
-                "http://localhost:3000", // 로컬 웹 테스트용
-                "http://10.0.2.2:8080"   // 안드로이드 에뮬레이터 테스트용
+                "http://localhost:3000",
+                "http://localhost:5000", // 플러터 웹 로컬 기본 포트 등 추가 가능
+                "http://43.200.7.166:8080"
         ));
 
-        // HTTP 메서드 및 헤더 설정
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);

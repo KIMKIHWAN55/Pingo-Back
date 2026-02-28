@@ -85,3 +85,6 @@ file:
 jwt:
   issuer: animetalesshop@gmail.com
   secret: IXFv859htG2PL5Bta8r0QHwvIhRh7x5m
+
+kakao:
+  rest-api-key: 3dd0daae148d772d441b5482da32edd2
