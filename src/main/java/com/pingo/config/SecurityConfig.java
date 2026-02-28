@@ -40,6 +40,9 @@ public class SecurityConfig {
                         // 1. OPTIONS 요청(Preflight) 무조건 허용
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
+                        // ⭐️ 스프링 내부 에러 페이지 허용 (진짜 에러 원인을 보기 위해 필수!)
+                        .requestMatchers("/error", "/error/**").permitAll()
+
                         // 2. 실제 프론트엔드 요청 경로 반영
                         // 컨트롤러 경로가 /pingo/permit/... 라면 시큐리티에도 동일하게 적어줘야 합니다.
                         .requestMatchers("/permit/**", "/pingo/permit/**").permitAll()
