@@ -80,8 +80,8 @@
 
     <!-- 유저 이미지 추가 -->
     <insert id="addUserImage" parameterType="com.pingo.entity.users.UserImage">
-        INSERT INTO "userImage" ("imageNo", "imageUrl", "imageProfile", "userNo")
-        VALUES (#{imageNo}, #{imageUrl}, #{imageProfile}, #{userNo})
+        INSERT INTO "userImage" ("imageUrl", "imageProfile", "userNo")
+        VALUES (#{imageUrl}, #{imageProfile}, #{userNo})
     </insert>
 
     <!-- 유저 이미지 삭제 -->
