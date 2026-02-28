@@ -29,7 +29,7 @@
     <!--  회원가입을 위한 유저 정보 삽입  -->
     <insert id="insertUserForSignUp" parameterType="com.pingo.entity.users.Users">
 
-        INSERT INTO "users" ("userNo", "userId", "userPw", "userName", "userNick", "userGender", "userState", "userrDate", "userRole")
+        INSERT INTO "users" ("userNo", "userId","userEmail", "userPw", "userName", "userNick", "userGender", "userState", "userrDate", "userRole")
         VALUES (#{userNo}, #{userId}, #{userPw}, #{userName}, #{userNick}, #{userGender}, #{userState}, #{userrDate}, #{userRole})
 
     </insert>
