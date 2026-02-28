@@ -6,6 +6,7 @@ import com.pingo.security.jwt.JwtProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod; // 추가
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -30,16 +31,19 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                // 1. CORS 설정 활성화 (이 부분이 없어서 문제였습니다!)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-
                 .csrf(csrf -> csrf.disable()) // CSRF 비활성화
 
-                // 토큰 필터 등 기존 설정 유지
                 .addFilterBefore(new JwtAuthenticationFilter(jwtProvider, membershipMapper), UsernamePasswordAuthenticationFilter.class)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/permit/**").permitAll()
+                        // 1. OPTIONS 요청(Preflight) 무조건 허용
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
+                        // 2. 실제 프론트엔드 요청 경로 반영
+                        // 컨트롤러 경로가 /pingo/permit/... 라면 시큐리티에도 동일하게 적어줘야 합니다.
+                        .requestMatchers("/permit/**", "/pingo/permit/**").permitAll()
+
                         .requestMatchers("/auto-signin").authenticated()
                         .anyRequest().authenticated()
                 );
@@ -47,25 +51,21 @@ public class SecurityConfig {
         return http.build();
     }
 
-    // 2. CORS 허용 규칙을 정의하는 Bean 추가
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        // 프론트엔드 주소 허용 (S3 버킷 주소나 도메인)
-        // 테스트를 위해 모든 도메인(*) 허용, 실제 배포 시에는 구체적인 주소(예: http://pingo-front.s3...com)로 바꾸는 것이 좋습니다.
-        configuration.setAllowedOriginPatterns(List.of("*"));
+        // 3. AllowCredentials가 true일 때는 도메인을 명시적으로 적는 것이 가장 안전합니다. ⭐️
+        configuration.setAllowedOrigins(Arrays.asList(
+                "http://pingo-front-hosting.s3-website.ap-northeast-2.amazonaws.com",
+                "http://localhost:3000", // 로컬 웹 테스트용
+                "http://10.0.2.2:8080"   // 안드로이드 에뮬레이터 테스트용
+        ));
 
-        // 허용할 HTTP 메서드 (GET, POST, PUT, DELETE 등)
+        // HTTP 메서드 및 헤더 설정
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
-
-        // 허용할 헤더
         configuration.setAllowedHeaders(List.of("*"));
-
-        // 인증 정보(쿠키, 토큰 등) 포함 허용
         configuration.setAllowCredentials(true);
-
-        // 클라이언트가 응답 헤더에서 Authorization(토큰)을 읽을 수 있게 허용
         configuration.addExposedHeader("Authorization");
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
