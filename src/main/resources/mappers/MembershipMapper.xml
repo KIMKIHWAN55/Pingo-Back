@@ -4,20 +4,25 @@
         "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
 <mapper namespace="com.pingo.mapper.MembershipMapper">
-    <!-- 유저 멤버쉽 조회 -->
+
+    <resultMap id="membershipResultMap" type="com.pingo.entity.membership.Membership">
+        <id property="msNo" column="msNo" /> <result property="title" column="msName" />
+        <result property="period" column="msDuration" />
+        <result property="contents" column="description" />
+        <result property="price" column="msPrice" />
+    </resultMap>
+
     <select id="selectUserMembership" resultType="com.pingo.entity.membership.UserMembership">
         SELECT * FROM "userMembership"
         WHERE "userNo" = #{userNo}
         AND "expDate" >= CURRENT_DATE
     </select>
 
-    <!-- 멤버쉽 테이블 조회 -->
-    <select id="selectMembership" resultType="com.pingo.entity.membership.Membership">
+    <select id="selectMembership" resultMap="membershipResultMap">
         SELECT * FROM "membership"
         ORDER BY "msNo" ASC
     </select>
 
-    <!-- 멤버쉽 등록 -->
     <insert id="insertUserMembership" parameterType="com.pingo.entity.membership.UserMembership">
         INSERT INTO "userMembership" ("umNo", "userNo", "msNo", "payDate", "expDate", "state")
         VALUES (#{umNo}, #{userNo}, #{msNo}, #{payDate}, #{expDate}, #{state})
