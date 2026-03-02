@@ -34,13 +34,19 @@ public class KeywordService {
 
     // [1-1] KeywordList 를 Map<String, KeywordGroup> 구조로 변경
     private Map<String, KeywordGroup> transformKeywordListToGroupMap(List<Keyword> keywordList) {
-        Map<String, KeywordGroup> keywordGroup = new HashMap<>();
+        Map<String, KeywordGroup> keywordGroup = new LinkedHashMap<>(); // 순서 보장을 위해 LinkedHashMap 사용 권장
+
         for (Keyword item : keywordList) {
-            if (item.getKwParentId() == null) {
+            // [수정] 레벨이 2면 '그룹(제목)'으로 생성
+            if ("2".equals(item.getKwLevel())) {
                 keywordGroup.put(item.getKwId(), new KeywordGroup(item.getKwId(), item.getKwName(), item.getKwMessage()));
-            }else {
-                KeywordGroup getKG = keywordGroup.get(item.getKwParentId());
-                getKG.addChildKeyword(item);
+            }
+            // [수정] 레벨이 3이면 해당하는 부모 그룹에 '자식(카드)'으로 추가
+            else if ("3".equals(item.getKwLevel())) {
+                String parentId = item.getKwParentId();
+                if (keywordGroup.containsKey(parentId)) {
+                    keywordGroup.get(parentId).addChildKeyword(item);
+                }
             }
         }
         return keywordGroup;

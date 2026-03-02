@@ -5,12 +5,10 @@
 
 <mapper namespace="com.pingo.mapper.KeywordMapper">
 
-    <select id="selectKeywordListFor2ndCategory" parameterType="map" resultType="com.pingo.entity.keywords.Keyword">
+    <select id="selectKeywordListFor2ndCategory" resultType="com.pingo.entity.keywords.Keyword">
         SELECT * FROM "keyword"
-        START WITH "kwParentId" IS NULL
-        CONNECT BY PRIOR "kwId" = "kwParentId"
-        AND LEVEL = 2
-        ORDER BY "kwId" ASC
+        WHERE "kwLevel" IN ('2', '3')
+        ORDER BY "kwLevel" ASC, "kwId" ASC
     </select>
 
     <select id="selectChildKeyword" parameterType="map" resultType="string">
