@@ -58,6 +58,7 @@ public class KeywordService {
             userNoList.add(each.getUserNo());
         }
 
+
         // 3) 내 주변 사람들의 키워드 조회
         Map<String, Object> userNos = new HashMap<>();
         userNos.put("userNos", userNoList);
@@ -125,5 +126,14 @@ public class KeywordService {
     // [3] User Keyword 저장
     public void insertUserKeywordForSignUp(String userNo, String userMyKeyword, String userFavoriteKeyword) {
         keywordMapper.insertUserKeywordForSignUp(userNo, userMyKeyword, userFavoriteKeyword);
+    }
+
+    // [4] 회원가입용 3차 키워드 목록 조회
+    public ResponseEntity<?> select3ndKeywordForSignup() {
+        // KeywordMapper를 통해 DB에서 3차 키워드 목록을 가져옴
+        List<Keyword> keywordList = keywordMapper.select3ndKeyword();
+
+        // 프론트엔드가 받을 수 있게 ResponseDTO 포장지에 담아서 리턴
+        return ResponseEntity.ok().body(ResponseDTO.of("1", "성공", keywordList));
     }
 }
