@@ -35,9 +35,11 @@
 
     <select id="getUserMypageInfo" parameterType="string" resultMap="UserInfoResultMap">
         SELECT
-        U."userNo", U."userId", U."userPw", U."userName", U."userNick",
+        U."userNo", U."userId", U."userName", U."userNick",
         U."userGender", U."userEmail", U."userRole", U."userState", U."userrDate",
-        UI."userBirth", UI."userHeight", UI."userAddress",
+        -- [수정] 문자열 데이터를 날짜 형식으로 명시적 변환 (형식에 맞춰 TO_DATE 사용)
+        TO_DATE(UI."userBirth", 'YYYY-MM-DD') AS "userBirth",
+        UI."userHeight", UI."userAddress",
         UI."user1stJob", UI."user2ndJob", UI."userReligion",
         UI."userDrinking", UI."userSmoking", UI."userBloodType"
         FROM "users" U
