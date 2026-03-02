@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.pingo.mapper.MainMapper">
+
+    <select id="selectNearbyUsers" resultType="com.pingo.dto.profile.MainProfileResponseDTO">
+        SELECT
+        U."userNo",
+        U."userName",
+        UI."userBirth",
+        '접속중' AS "status",
+
+        -- [거리 계산] Haversine 공식 (내 위치 vs 상대방 위치)
+        ROUND(
+        6371 * ACOS(
+        LEAST(1.0, GREATEST(-1.0, -- ACOS 범위 오류 방지
+        COS(TO_NUMBER(MY_LOC."latitude") * 0.0174532925)
+        * COS(TO_NUMBER(YOUR_LOC."latitude") * 0.0174532925)
+        * COS((TO_NUMBER(YOUR_LOC."longitude") - TO_NUMBER(MY_LOC."longitude")) * 0.0174532925)
+        + SIN(TO_NUMBER(MY_LOC."latitude") * 0.0174532925)
+        * SIN(TO_NUMBER(YOUR_LOC."latitude") * 0.0174532925)
+        ))
+        ), 1
+        ) AS "distance",
+
+        -- [이미지] 쉼표로 연결해서 가져옴 (Java에서 split)
+        (
+        SELECT LISTAGG(IMG."imageUrl", ',') WITHIN GROUP (ORDER BY IMG."imageProfile" DESC, IMG."imageNo")
+        FROM "userImage" IMG
+        WHERE IMG."userNo" = U."userNo"
+        ) AS "images"
+
+        FROM "users" U
+        JOIN "userInfo" UI ON U."userNo" = UI."userNo"
+        JOIN "userLocation" YOUR_LOC ON U."userNo" = YOUR_LOC."userNo"
+        -- 내 위치 정보 조인 (서브쿼리 방식보다 조인이 빠름)
+        CROSS JOIN (
+        SELECT "latitude", "longitude"
+        FROM "userLocation"
+        WHERE "userNo" = #{userNo}
+        ) MY_LOC
+
+        WHERE U."userNo" != #{userNo} -- 나는 제외
+
+        -- [필터 1] 내가 이미 스와이프(PING, PANG, SUPERPING)한 사람은 제외
+        AND NOT EXISTS (
+        SELECT 1 FROM "swipe" S
+        WHERE S."fromUserNo" = #{userNo}
+        AND S."toUserNo" = U."userNo"
+        )
+
+        -- [필터 2] 내가 차단한 사람 제외
+        AND NOT EXISTS (
+        SELECT 1 FROM "userBlock" B
+        WHERE B."fromUserNo" = #{userNo}
+        AND B."toUserNo" = U."userNo"
+        )
+
+        -- [거리 필터] 계산된 거리가 설정한 거리보다 작아야 함
+        AND (
+        6371 * ACOS(
+        LEAST(1.0, GREATEST(-1.0,
+        COS(TO_NUMBER(MY_LOC."latitude") * 0.0174532925)
+        * COS(TO_NUMBER(YOUR_LOC."latitude") * 0.0174532925)
+        * COS((TO_NUMBER(YOUR_LOC."longitude") - TO_NUMBER(MY_LOC."longitude")) * 0.0174532925)
+        + SIN(TO_NUMBER(MY_LOC."latitude") * 0.0174532925)
+        * SIN(TO_NUMBER(YOUR_LOC."latitude") * 0.0174532925)
+        ))
+        )
+        ) &lt;= #{distanceKm}
+
+        ORDER BY "distance" ASC
+    </select>
+</mapper>
