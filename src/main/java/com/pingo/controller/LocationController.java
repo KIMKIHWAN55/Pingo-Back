@@ -28,7 +28,8 @@ public class LocationController {
         return ResponseEntity.ok(ResponseDTO.of("1","성공",true));
     }
 
-    // 반경 내 유저 검색 API
+// ⛔ 아래 메서드 전체를 주석 처리 하세요! (MainController와 충돌 지점)
+    /*
     @GetMapping("/user/nearby")
     public ResponseEntity<?>  getNearbyUsers(
             @RequestParam String userNo,
@@ -38,4 +39,5 @@ public class LocationController {
         log.info("파라미터 확인 : " + userNo + distanceKm);
         return locationService.getNearbyUsersForMain(userNo, distanceKm);
     }
+    */
 }
