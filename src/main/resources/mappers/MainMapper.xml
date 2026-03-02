@@ -25,11 +25,6 @@
         JOIN "userInfo" UI ON U."userNo" = UI."userNo"
         JOIN "USER_LOCATIONS" YOUR_LOC ON U."userNo" = YOUR_LOC."USERNO"
         WHERE U."userNo" != #{userNo}
-        -- 아래 조건들을 모두 주석 처리하여 무조건 조회되게 함
-        /*
-        AND NOT EXISTS (SELECT 1 FROM "swipe" S WHERE S."fromUserNo" = #{userNo} AND S."toUserNo" = U."userNo")
-        AND SDO_GEOM.SDO_DISTANCE(...) &lt;= #{distanceKm}
-        */
         ORDER BY "distance" ASC
     </select>
 </mapper>
