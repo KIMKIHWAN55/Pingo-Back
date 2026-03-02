@@ -20,7 +20,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
-import java.util.ArrayList; // ArrayList 추가됨
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,27 +34,23 @@ public class UserService {
     private final EmailService emailService;
     private final PasswordEncoder passwordEncoder;
 
-    // DetailPage를 위한 회원 상세정보 조회
+    // DetailPage를 위한 회원 상세정보 조회 <나중에 합쳐주세용~>
     public ResponseEntity<?> getInfo(String userNo) {
         try {
+            // ★ 상세정보랑 소개정보는 join으로 합칠 수 있음
             // 유저 마이페이지 상세 정보 조회
             UserMypageInfo userMypageInfo = userMapper.getUserMypageInfo(userNo);
-
-            if (userMypageInfo == null) {
-                throw new BusinessException(ExceptionCode.USER_INFO_NOT_FOUND);
-            }
             log.info("userMypageInfo : " + userMypageInfo);
 
             // 유저 소개 정보 조회
             String userIntroduction = userMapper.selectUserIntroduction(userNo);
-            // 소개글이 없으면 빈 문자열 처리
-            userMypageInfo.inputUserIntroduction(userIntroduction != null ? userIntroduction : "");
+            userMypageInfo.inputUserIntroduction(userIntroduction);
 
             log.info("userMypageInfo : " + userMypageInfo);
 
             return ResponseEntity.ok().body(ResponseDTO.of("1","성공", userMypageInfo));
-        } catch (Exception e) {
-            log.error("[getInfo 오류] " + e.getMessage());
+        }catch (Exception e) {
+            log.error(e.getMessage());
             throw new BusinessException(ExceptionCode.USER_INFO_NOT_FOUND);
         }
     }
@@ -64,65 +59,45 @@ public class UserService {
     @Transactional
     public ResponseEntity<?> getUserInfo(String userNo) {
         try {
+            // ★ 상세정보랑 소개정보는 join으로 합칠 수 있음
             // 유저 마이페이지 상세 정보 조회
             UserMypageInfo userMypageInfo = userMapper.getUserMypageInfo(userNo);
-
-            if (userMypageInfo == null) {
-                throw new BusinessException(ExceptionCode.USER_INFO_NOT_FOUND);
-            }
             log.info("userMypageInfo : " + userMypageInfo);
 
             // 유저 소개 정보 조회
             String userIntroduction = userMapper.selectUserIntroduction(userNo);
-            userMypageInfo.inputUserIntroduction(userIntroduction != null ? userIntroduction : "");
+            userMypageInfo.inputUserIntroduction(userIntroduction);
 
             // 유저 이미지 조회
             List<UserImage> userImages = userMapper.getUserImages(userNo);
-            userMypageInfo.inputUserImage(userImages != null ? userImages : new ArrayList<>());
+            userMypageInfo.inputUserImage(userImages);
 
             // 유저 키워드 정보 조회
             UserKeyword userKeyword = userMapper.getUserKeyword(userNo);
-            // ★ 여기서 에러가 났었습니다. 안전한 메서드로 교체함
             Map<String, List<Keyword>> userKeywordList = parseUserKeyword(userKeyword);
             userMypageInfo.inputUserKeyword(userKeywordList);
 
-            log.info("userMypageInfo 최종 반환 : " + userMypageInfo);
+            log.info("userMypageInfo : " + userMypageInfo);
 
             return ResponseEntity.ok().body(ResponseDTO.of("1","성공", userMypageInfo));
-        } catch (Exception e) {
-            log.error("[getUserInfo 오류] " + e.getMessage());
+        }catch (Exception e) {
+            log.error(e.getMessage());
             throw new BusinessException(ExceptionCode.USER_INFO_NOT_FOUND);
         }
     }
 
-    // ★ [수정됨] 유저 키워드 정보 파싱 (Null Safety 적용)
+    // 유저 키워드 정보 파싱
     private Map<String, List<Keyword>> parseUserKeyword(UserKeyword userKeyword) {
+        // 나의 키워드
+        String[] myKeywords = userKeyword.getMy().split("_");
+        String[] favoriteKeywords = userKeyword.getFavorite().split("_");
+
+        List<Keyword> myKeywordList = userMapper.getUserKeywordDetail(myKeywords);
+        List<Keyword> favoriteKeywordList = userMapper.getUserKeywordDetail(favoriteKeywords);
+
         Map<String, List<Keyword>> resultMap = new HashMap<>();
-
-        // 1. 유저 키워드 데이터가 아예 없는 경우 (신규 회원 등) -> 빈 리스트 반환
-        if (userKeyword == null) {
-            resultMap.put("my", new ArrayList<>());
-            resultMap.put("favorite", new ArrayList<>());
-            return resultMap;
-        }
-
-        // 2. '나의 키워드'가 null이거나 비어있지 않은지 확인 후 처리
-        if (userKeyword.getMy() != null && !userKeyword.getMy().trim().isEmpty()) {
-            String[] myKeywords = userKeyword.getMy().split("_");
-            List<Keyword> myKeywordList = userMapper.getUserKeywordDetail(myKeywords);
-            resultMap.put("my", myKeywordList);
-        } else {
-            resultMap.put("my", new ArrayList<>());
-        }
-
-        // 3. '관심 키워드'가 null이거나 비어있지 않은지 확인 후 처리
-        if (userKeyword.getFavorite() != null && !userKeyword.getFavorite().trim().isEmpty()) {
-            String[] favoriteKeywords = userKeyword.getFavorite().split("_");
-            List<Keyword> favoriteKeywordList = userMapper.getUserKeywordDetail(favoriteKeywords);
-            resultMap.put("favorite", favoriteKeywordList);
-        } else {
-            resultMap.put("favorite", new ArrayList<>());
-        }
+        resultMap.put("my", myKeywordList);
+        resultMap.put("favorite", favoriteKeywordList);
 
         return resultMap;
     }
@@ -131,9 +106,6 @@ public class UserService {
     public ResponseEntity<?> addUserImage(String userNo, MultipartFile userImageForAdd) {
         // 유저 번호에 해당하는 이미지 호출
         List<UserImage> userImages = userMapper.getUserImages(userNo);
-        if (userImages == null) {
-            userImages = new ArrayList<>();
-        }
 
         // 리스트에 담긴 사진 수
         int userImagecount = userImages.size();
@@ -141,8 +113,13 @@ public class UserService {
 
         if (userImagecount < 6 ) {
             // 이미지 서버에 저장하기
+            // 새로운 유저이미지 객체 생성
             UserImage userImage = new UserImage();
+
+            // 이미지 번호 랜덤 생성
             userImage.makeImageNo();
+
+            // 이미지 번호 호출
             String imageNo = userImage.getImageNo();
 
             // 이미지 경로 호출 후 업로드 로직
@@ -161,14 +138,21 @@ public class UserService {
     // 유저의 서브이미지를 메인이미지로 설정
     @Transactional
     public ResponseEntity<?> setMainImage(String currentMainImageNo, String newMainImageNo) {
+
+        // 대표이미지를 서브이미지로 설정
         userMapper.setMainImageAsSubImage(currentMainImageNo);
+
+        // 선택한 서브이미지를 대표이미지로 설정
         userMapper.setSubImageAsMainImage(newMainImageNo);
+
         return ResponseEntity.ok().body(ResponseDTO.of("1","성공", true));
     }
 
     // 유저 이미지 삭제
     public ResponseEntity<?> deleteUserImage(String ImageNoForDelete) {
+
         userMapper.deleteUserImage(ImageNoForDelete);
+
         return ResponseEntity.ok().body(ResponseDTO.of("1","성공", true));
     }
 
@@ -176,19 +160,19 @@ public class UserService {
     @Transactional
     public ResponseEntity<?> updateUserInfo(UserMypageInfo userMypageInfo) {
         try {
-            // 1. users 의 이메일 저장
+            // 1. usrs 의 이메일 저장
             userMapper.updateUserEmail(userMypageInfo.getUsers().getUserNo(), userMypageInfo.getUsers().getUserEmail());
-
+            
             // 2. userInfo 저장
-            userMapper.updateUserInfo(userMypageInfo.getUserInfo());
+            userMapper.updateUserInfo(userMypageInfo.getUserInfo()); // <- 여기 회원 정보 있음
 
-            // 3. userKeyword 저장 (Null 방지 처리된 메서드 사용)
+            // 3. userKeyword 저장
             String myKeyword = parseKeywordToString(userMypageInfo.getMyKeywordList());
             String favoriteKeyword = parseKeywordToString(userMypageInfo.getFavoriteKeywordList());
             userMapper.updateUserKeyword(userMypageInfo.getUsers().getUserNo(), myKeyword, favoriteKeyword);
 
             // 4. 자기 소개 저장
-            userMapper.updateUserIntro(userMypageInfo.getUsers().getUserNo(), userMypageInfo.getUserIntroduction());
+            userMapper.updateUserIntro(userMypageInfo.getUsers().getUserNo(), userMypageInfo.getUserIntroduction()); // <- 여기 회원 소개 있음
 
             return ResponseEntity.ok().body(ResponseDTO.of("1","성공",true));
         }catch (Exception e) {
@@ -197,26 +181,23 @@ public class UserService {
         }
     }
 
-    // ★ [수정됨] 회원 키워드 리스트 문자열로 전환 (Null Safety)
+    // 회원 키워드 리스트 문자열로 전환
     public String parseKeywordToString(List<Keyword> keywordList) {
-        if (keywordList == null || keywordList.isEmpty()) {
-            return null; // DB에 null로 저장하거나 ""로 저장 선택 (보통 null)
-        }
-
         StringBuilder keywordStr = new StringBuilder();
-        for (Keyword each : keywordList) {
-            if (each == null || each.getKwId() == null) continue; // 안전장치
 
-            if (keywordStr.length() > 0) { // 첫 번째가 아니면 앞에 _ 붙임
-                keywordStr.append("_");
+        for (Keyword each : keywordList) {
+            if (keywordStr.isEmpty()) {
+                keywordStr.append(each.getKwId());
             }
-            keywordStr.append(each.getKwId());
+            keywordStr.append("_").append(each.getKwId());
         }
         return keywordStr.toString();
     }
 
     // 이메일 인증코드 발송
     public ResponseEntity<?> verifyEmail(String userEmail, HttpSession session) throws MessagingException {
+
+        // 이메일 인증코드 발송
         String sessionId = emailService.sendVerificationEmail(userEmail, session);
         return ResponseEntity.ok().body(ResponseDTO.of("1","성공",sessionId));
     }
@@ -249,8 +230,12 @@ public class UserService {
     // 유저 비밀번호 재설정
     public ResponseEntity<?> resetUserPw(String userNo, String userPw) {
         try {
+            // 저장하기 전에 비밀번호 암호화 하기
             String encodedPw = passwordEncoder.encode(userPw);
+
+            // 암호화 된 비밀번호 저장
             userMapper.resetUserPw(userNo, encodedPw);
+
             return ResponseEntity.ok().body(ResponseDTO.of("1","성공", true));
         } catch (Exception e) {
             throw new BusinessException(ExceptionCode.RESET_USER_PW_FAIL);

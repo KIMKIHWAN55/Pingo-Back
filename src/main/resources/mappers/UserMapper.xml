@@ -5,6 +5,7 @@
 
 <mapper namespace="com.pingo.mapper.UserMapper">
 
+    <!-- Users 객체 매핑 -->
     <resultMap id="UserInfoResultMap" type="com.pingo.entity.users.UserMypageInfo">
         <association property="users" javaType="com.pingo.entity.users.Users">
             <id column="userNo" property="userNo"/>
@@ -19,6 +20,7 @@
             <result column="userEmail" property="userEmail"/>
         </association>
 
+        <!-- UserInfo 객체 매핑 -->
         <association property="userInfo" javaType="com.pingo.entity.users.UserInfo">
             <id column="userNo" property="userNo"/>
             <result column="userBirth" property="userBirth"/>
@@ -33,112 +35,127 @@
         </association>
     </resultMap>
 
-    <select id="getUserMypageInfo" parameterType="string" resultMap="UserInfoResultMap">
-        SELECT
-        U."userNo", U."userId", U."userName", U."userNick",
-        U."userGender", U."userEmail", U."userRole", U."userState", U."userrDate",
-        -- [수정] 문자열 데이터를 날짜 형식으로 명시적 변환 (형식에 맞춰 TO_DATE 사용)
-        TO_DATE(UI."userBirth", 'YYYY-MM-DD') AS "userBirth",
-        UI."userHeight", UI."userAddress",
-        UI."user1stJob", UI."user2ndJob", UI."userReligion",
-        UI."userDrinking", UI."userSmoking", UI."userBloodType"
-        FROM "users" U
-        LEFT JOIN "userInfo" UI ON U."userNo" = UI."userNo"
-        WHERE U."userNo" = #{userNo}
+    <!-- 사용자 정보 조회 -->
+    <select id="getUserMypageInfo" parameterType="map" resultMap="UserInfoResultMap">
+        SELECT U."userNo", U."userName", U."userNick", U."userGender", U."userEmail",
+        UI."userBirth", UI."userHeight", UI."userAddress", UI."user1stJob", UI."user2ndJob",
+        UI."userReligion", UI."userDrinking", UI."userSmoking", UI."userBloodType"
+        FROM "users" U, "userInfo" UI
+        WHERE U."userNo" = UI."userNo"
+        AND U."userNo" = #{userNo}
     </select>
 
-    <select id="getMatchUser" parameterType="string" resultType="com.pingo.entity.match.MatchUser">
-        SELECT US."userName", UF."userBirth", UI."imageUrl"
-        FROM "users" US
-        JOIN "userInfo" UF ON US."userNo" = UF."userNo"
-        LEFT JOIN "userImage" UI ON US."userNo" = UI."userNo" AND UI."imageProfile" = 'T'
-        WHERE US."userNo" = #{userNo}
-    </select>
-
-    <select id="getUserImages" parameterType="string" resultType="com.pingo.entity.users.UserImage">
+    <!-- 유저번호에 해당하는 이미지 조회 -->
+    <select id="getUserImages" parameterType="map" resultType="com.pingo.entity.users.UserImage">
         SELECT "imageNo", "imageUrl", "imageProfile", "userNo"
         FROM "userImage"
         WHERE "userNo" = #{userNo}
     </select>
 
-    <select id="getUserKeyword" parameterType="string" resultType="com.pingo.entity.users.UserKeyword">
-        SELECT "userNo", "my", "favorite"
-        FROM "userKeyword"
-        WHERE "userNo" = #{userNo}
+    <!-- 유저번호에 해당하는 유저이름, 유저나이, 유저 대표이미지 조회 -->
+    <select id="getMatchUser" parameterType="map" resultType="com.pingo.entity.match.MatchUser">
+        SELECT US."userName" , UF."userBirth" , UI."imageUrl"
+        FROM "users" US
+        JOIN "userInfo" UF
+        ON US."userNo" = UF."userNo"
+        JOIN "userImage" UI
+        ON US."userNo" = UI."userNo"
+        WHERE US."userNo" = #{userNo}
+        AND UI."imageProfile" = 'T'
     </select>
 
-    <select id="getUserKeywordDetail" resultType="com.pingo.entity.keywords.Keyword">
-        SELECT * FROM "keyword"
-        WHERE "kwId" IN
-        <foreach item="item" collection="myKeywords" open="(" separator="," close=")">
-            #{item}
-        </foreach>
-    </select>
-
-    <select id="selectUserIntroduction" parameterType="string" resultType="string">
-        SELECT "introduction" FROM "userIntroduction"
-        WHERE "userNo" = #{userNo}
-    </select>
-
-    <update id="setMainImageAsSubImage" parameterType="string">
+    <!-- 유저 대표이미지를 서브이미지로 설정 -->
+    <update id="setMainImageAsSubImage" parameterType="map">
         UPDATE "userImage"
         SET "imageProfile" = 'F'
         WHERE "imageNo" = #{currentMainImageNo}
     </update>
 
-    <update id="setSubImageAsMainImage" parameterType="string">
+    <!-- 선택한 서브이미지를 대표이미지로 설정 -->
+    <update id="setSubImageAsMainImage" parameterType="map">
         UPDATE "userImage"
         SET "imageProfile" = 'T'
         WHERE "imageNo" = #{newMainImageNo}
     </update>
 
-    <insert id="addUserImage">
+    <!-- 유저 이미지 추가 -->
+    <insert id="addUserImage" parameterType="com.pingo.entity.users.UserImage">
         INSERT INTO "userImage" ("imageNo", "imageUrl", "imageProfile", "userNo")
         VALUES (#{imageNo}, #{imageUrl}, #{imageProfile}, #{userNo})
     </insert>
 
-    <delete id="deleteUserImage" parameterType="string">
+    <!-- 유저 이미지 삭제 -->
+    <delete id="deleteUserImage" parameterType="map">
         DELETE FROM "userImage"
         WHERE "imageNo" = #{imageNoForDelete}
     </delete>
 
-    <update id="updateUserEmail">
+    <!-- 유저 키워드 조회 -->
+    <select id="getUserKeyword" parameterType="map" resultType="com.pingo.entity.users.UserKeyword">
+        SELECT * FROM "userKeyword"
+        WHERE "userNo" = #{userNo}
+    </select>
+
+    <!-- 유저 키워드 디테일 조회 -->
+    <select id="getUserKeywordDetail" resultType="com.pingo.entity.keywords.Keyword">
+        SELECT * FROM "keyword"
+        WHERE "kwId" IN
+        <foreach item="Keyword" collection="myKeywords" open="(" separator="," close=")">
+            #{Keyword}
+        </foreach>
+    </select>
+
+    <!-- 유저 소개 조회 -->
+    <select id="selectUserIntroduction" parameterType="map" resultType="string">
+        SELECT "introduction" FROM "userIntroduction"
+        WHERE "userNo" = #{userNo}
+    </select>
+
+    <!-- 유저 이메일 수정 -->
+    <update id="updateUserEmail" parameterType="map">
         UPDATE "users"
         SET "userEmail" = #{userEmail}
         WHERE "userNo" = #{userNo}
     </update>
 
-    <update id="updateUserInfo" parameterType="com.pingo.entity.users.UserInfo">
+    <!-- 유저 상세 정보 수정 -->
+    <update id="updateUserInfo" parameterType="map">
         UPDATE "userInfo"
         SET "userBirth" = #{userBirth}, "userHeight" = #{userHeight}, "userAddress" = #{userAddress},
-        "user1stJob" = #{user1stJob}, "user2ndJob" = #{user2ndJob}, "userReligion" = #{userReligion},
-        "userDrinking" = #{userDrinking}, "userSmoking" = #{userSmoking}, "userBloodType" = #{userBloodType}
+            "user1stJob" = #{user1stJob}, "user2ndJob" = #{user2ndJob}, "userReligion" = #{userReligion},
+            "userDrinking" = #{userDrinking}, "userSmoking" = #{userSmoking}, "userBloodType" = #{userBloodType}
         WHERE "userNo" = #{userNo}
     </update>
 
-    <update id="updateUserKeyword">
+    <!-- 유저 키워드 수정 -->
+    <update id="updateUserKeyword" parameterType="map">
         UPDATE "userKeyword"
         SET "my" = #{myKeyword}, "favorite" = #{favoriteKeyword}
         WHERE "userNo" = #{userNo}
     </update>
 
-    <update id="updateUserIntro">
+    <!-- 유저 자기소개 수정 -->
+    <update id="updateUserIntro" parameterType="map">
         UPDATE "userIntroduction"
         SET "introduction" = #{userIntroduction}
         WHERE "userNo" = #{userNo}
     </update>
 
-    <select id="findUserId" parameterType="map" resultType="string">
-        SELECT "userId" FROM "users"
-        WHERE "userName" = #{userName} AND "userEmail" = #{userEmail}
+    <select id="findUserId" parameterType="map" resultType="String">
+        SELECT "userId"
+        FROM "users"
+        WHERE "userName" = #{userName}
+            AND "userEmail" = #{userEmail}
     </select>
 
-    <select id="findUserPw" parameterType="map" resultType="string">
-        SELECT "userNo" FROM "users"
-        WHERE "userId" = #{userId} AND "userEmail" = #{userEmail}
+    <select id="findUserPw" parameterType="map" resultType="String">
+        SELECT "userNo"
+        FROM "users"
+        WHERE "userId" = #{userId}
+        AND "userEmail" = #{userEmail}
     </select>
 
-    <update id="resetUserPw">
+    <update id="resetUserPw" parameterType="map">
         UPDATE "users"
         SET "userPw" = #{userPw}
         WHERE "userNo" = #{userNo}

@@ -9,13 +9,12 @@ spring:
       enabled: false
 
   datasource:
-    url: jdbc:oracle:thin:@43.200.7.166:1521/XEPDB1
+    url: jdbc:oracle:thin:@3.36.116.154:1521/XEPDB1
     username: pingo
     password: Qwer1234
     driver-class-name: oracle.jdbc.OracleDriver
-
   kafka:
-    bootstrap-servers: 54.180.228.125:9092   # EC2 Kafka 브로커 주소
+    bootstrap-servers: 54.180.228.125:9092  # EC2 Kafka 브로커 주소
     producer:
       retries: 3  # 실패 시 최대 3번 재시도 (네트워크 불안정 대비)
       acks: all   # 모든 리더가 메시지를 받아야 성공 처리 (데이터 손실 방지)
@@ -30,10 +29,9 @@ spring:
       max-poll-records: 10         # 한 번에 가져올 최대 메시지 수 (조절 가능)
     listener:
       ack-mode: manual_immediate  # 수동 확인 모드 (메시지 손실 방지)
-
   data:
     redis:
-      host: 43.200.7.166 # AWS Redis 컨테이너 IP 주소
+      host: 3.36.116.154  # AWS Redis 컨테이너 IP 주소
       port: 6379
       timeout: 6000  # 타임아웃 (밀리초)
       lettuce:
@@ -44,7 +42,7 @@ spring:
           max-wait: 5000  # 최대 대기 시간 (밀리초)
 
     mongodb:
-      host: 43.200.7.166
+      host: 3.36.116.154
       port: 27017
       database: pingochat
 
@@ -85,6 +83,3 @@ file:
 jwt:
   issuer: animetalesshop@gmail.com
   secret: IXFv859htG2PL5Bta8r0QHwvIhRh7x5m
-
-kakao:
-  rest-api-key: 3dd0daae148d772d441b5482da32edd2

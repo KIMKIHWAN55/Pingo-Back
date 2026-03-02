@@ -26,5 +26,4 @@ public interface KeywordMapper {
     public void insertUserKeywordForSignUp(@Param("userNo") String userNo,
                                            @Param("userMyKeyword") String userMyKeyword,
                                            @Param("userFavoriteKeyword") String userFavoriteKeyword);
-    List<Keyword> select3ndKeyword();
 }

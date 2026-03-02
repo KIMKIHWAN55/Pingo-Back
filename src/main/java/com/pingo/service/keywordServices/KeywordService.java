@@ -34,19 +34,13 @@ public class KeywordService {
 
     // [1-1] KeywordList 를 Map<String, KeywordGroup> 구조로 변경
     private Map<String, KeywordGroup> transformKeywordListToGroupMap(List<Keyword> keywordList) {
-        Map<String, KeywordGroup> keywordGroup = new LinkedHashMap<>(); // 순서 보장을 위해 LinkedHashMap 사용 권장
-
+        Map<String, KeywordGroup> keywordGroup = new HashMap<>();
         for (Keyword item : keywordList) {
-            // [수정] 레벨이 2면 '그룹(제목)'으로 생성
-            if ("2".equals(item.getKwLevel())) {
+            if (item.getKwParentId() == null) {
                 keywordGroup.put(item.getKwId(), new KeywordGroup(item.getKwId(), item.getKwName(), item.getKwMessage()));
-            }
-            // [수정] 레벨이 3이면 해당하는 부모 그룹에 '자식(카드)'으로 추가
-            else if ("3".equals(item.getKwLevel())) {
-                String parentId = item.getKwParentId();
-                if (keywordGroup.containsKey(parentId)) {
-                    keywordGroup.get(parentId).addChildKeyword(item);
-                }
+            }else {
+                KeywordGroup getKG = keywordGroup.get(item.getKwParentId());
+                getKG.addChildKeyword(item);
             }
         }
         return keywordGroup;
@@ -63,7 +57,6 @@ public class KeywordService {
         for (MainProfileResponseDTO each : nearByUser) {
             userNoList.add(each.getUserNo());
         }
-
 
         // 3) 내 주변 사람들의 키워드 조회
         Map<String, Object> userNos = new HashMap<>();
@@ -132,14 +125,5 @@ public class KeywordService {
     // [3] User Keyword 저장
     public void insertUserKeywordForSignUp(String userNo, String userMyKeyword, String userFavoriteKeyword) {
         keywordMapper.insertUserKeywordForSignUp(userNo, userMyKeyword, userFavoriteKeyword);
-    }
-
-    // [4] 회원가입용 3차 키워드 목록 조회
-    public ResponseEntity<?> select3ndKeywordForSignup() {
-        // KeywordMapper를 통해 DB에서 3차 키워드 목록을 가져옴
-        List<Keyword> keywordList = keywordMapper.select3ndKeyword();
-
-        // 프론트엔드가 받을 수 있게 ResponseDTO 포장지에 담아서 리턴
-        return ResponseEntity.ok().body(ResponseDTO.of("1", "성공", keywordList));
     }
 }

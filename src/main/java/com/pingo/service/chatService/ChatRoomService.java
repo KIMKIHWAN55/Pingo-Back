@@ -35,9 +35,9 @@ public class ChatRoomService {
         // 유효성 검사 예외처리
         try {
             List<ChatUserDTO> chatUserDTOS = chatMapper.selectChatUser(userNo);
+            log.info("값이없나요?" + chatUserDTOS);
             if(chatUserDTOS.isEmpty()) {
-                // 에러를 던지지 말고, 빈 결과를 정상적으로 리턴합니다.
-                return ResponseEntity.ok().body(ResponseDTO.of("1", "성공", new HashMap<>()));
+                throw new BusinessException(ExceptionCode.MATCHING_FAILED);
             }
             // 결과를 저장할 맵 (채팅방별로 데이터를 구성 : String이 roomId가 되어야한다.) // 비어있는 맵 생성
             Map<String, ChatRoomDTO> chatRoomMap = new HashMap<>();
