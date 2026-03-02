@@ -18,25 +18,20 @@ import java.util.Optional;
 @RequiredArgsConstructor
 @Service
 public class ChatMsgService {
-
     private final ChatMsgRepository chatMsgRepository;
 
-    Pageable pageable = PageRequest.of(0, 100);
-
-    // 전체 메세지 조회 ( --> 끝에서 100개정도 가져오는 걸로 수정해야함)
+    // 최신 메세지 조회
     public List<ChatMsgDTO> selectMessage(String roomId){
-        List<ChatMsgDTO> chatMsgDTO = chatMsgRepository.findByRoomId(roomId,pageable);
-        log.info("너의 값은? : " + chatMsgDTO);
-
-        return chatMsgDTO;
+        Pageable pageable = PageRequest.of(0, 100); // 여기서 생성
+        return chatMsgRepository.findByRoomId(roomId, pageable);
     }
 
-    // 스크롤시 100개 정도의 oldMessage 조회(로컬 디비 저장시 해당 메서드 필요없음)
+    // 과거 메세지 무한스크롤 조회
     public List<ChatMsgDTO> selectOldMessage(String msgId, String roomId){
-        List<ChatMsgDTO> chatMsgDTO2 = chatMsgRepository.findByMsgId(roomId, msgId, pageable);
-
-        return chatMsgDTO2;
+        Pageable pageable = PageRequest.of(0, 100); // 여기서 생성
+        return chatMsgRepository.findByMsgId(roomId, msgId, pageable);
     }
+
 
     // 메세지 삽입
     public ChatMsgDTO insertMessage(ChatMsgDTO chatMsgDTO){
