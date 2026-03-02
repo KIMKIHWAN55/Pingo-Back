@@ -35,4 +35,10 @@
         INSERT INTO "userKeyword" ("userNo", "my", "favorite") VALUES (#{userNo}, #{userMyKeyword}, #{userFavoriteKeyword})
     </insert>
 
+    <select id="select3ndKeyword" resultType="com.pingo.entity.keywords.Keyword">
+        SELECT * FROM "keyword"
+        WHERE "kwLevel" = '3'
+        ORDER BY "kwId" ASC
+    </select>
+
 </mapper>
