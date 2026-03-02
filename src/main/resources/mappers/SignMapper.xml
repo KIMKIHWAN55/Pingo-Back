@@ -23,7 +23,7 @@
 
     <!-- 성향 3차 키워드 조회 -->
     <select id="select3ndKeyword" resultType="com.pingo.entity.keywords.Keyword" useCache="false">
-        SELECT * FROM "keyword" WHERE "kwLevel" = 3 ORDER BY "kwName" ASC
+        SELECT * FROM "keyword" WHERE "kwLevel" = '3' ORDER BY "kwName" ASC
     </select>
 
     <!--  회원가입을 위한 유저 정보 삽입  -->
