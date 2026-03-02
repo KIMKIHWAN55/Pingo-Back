@@ -32,7 +32,7 @@ public class MainController {
 
         // 2. 프론트엔드가 기대하는 { "status": 1, "message": "...", "data": [...] } 구조 생성
         Map<String, Object> response = new HashMap<>();
-        response.put("status", 1);
+        response.put("status", "1");
         response.put("message", "주변 유저 조회 성공");
         response.put("data", userList); // 여기가 핵심: data 키 안에 리스트가 들어가야 함
 
