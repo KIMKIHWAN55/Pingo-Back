@@ -100,14 +100,12 @@
         DELETE FROM "placeReviewHeart" WHERE "userNo" = #{userNo}
     </delete>
 
-    <select id="updatePlaceReviewHeart" parameterType="map">
-        UPDATE "placeReviewHeart" SET "prNoStr" = #{prNoStr}
-        WHERE "userNo" = #{userNo}
-    </select>
-
-    <select id="insertPlaceReviewHeart" parameterType="map">
+    <update id="updatePlaceReviewHeart" parameterType="map">
+        UPDATE "placeReviewHeart" SET "prNoStr" = #{prNoStr} WHERE "userNo" = #{userNo}
+    </update>
+    <insert id="insertPlaceReviewHeart" parameterType="map">
         INSERT INTO "placeReviewHeart" ("userNo", "prNoStr") VALUES (#{userNo}, #{prNoStr})
-    </select>
+    </insert>
 
     <!-- DatingGuide 최초 조회 -->
     <select id="selectDatingGuideForInit" resultType="com.pingo.dto.community.DatingGuideDTO">

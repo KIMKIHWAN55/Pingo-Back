@@ -12,16 +12,21 @@
     </select>
 
     <update id="updateUserLocation">
-        MERGE INTO user_locations ul
+        MERGE INTO USER_LOCATIONS ul
         USING (
-        SELECT #{userNo} AS userNo, #{latitude} AS latitude, #{longitude} AS longitude FROM dual
+        SELECT #{userNo} AS USERNO, #{latitude} AS LATITUDE, #{longitude} AS LONGITUDE FROM dual
         ) dummy
-        ON (ul.userNo = dummy.userNo)
+        ON (ul.USERNO = dummy.USERNO)
         WHEN MATCHED THEN
-        UPDATE SET ul.latitude = dummy.latitude, ul.longitude = dummy.longitude
+        UPDATE SET
+        ul.LATITUDE = dummy.LATITUDE,
+        ul.LONGITUDE = dummy.LONGITUDE,
+        ul.LAST_UPDATED = SYSTIMESTAMP,
+        ul.LOCATION = SDO_GEOMETRY(2001, 8307, SDO_POINT_TYPE(dummy.LONGITUDE, dummy.LATITUDE, NULL), NULL, NULL)
         WHEN NOT MATCHED THEN
-        INSERT (userNo, latitude, longitude)
-        VALUES (dummy.userNo, dummy.latitude, dummy.longitude)
+        INSERT (USERNO, LATITUDE, LONGITUDE, LAST_UPDATED, LOCATION)
+        VALUES (dummy.USERNO, dummy.LATITUDE, dummy.LONGITUDE, SYSTIMESTAMP,
+        SDO_GEOMETRY(2001, 8307, SDO_POINT_TYPE(dummy.LONGITUDE, dummy.LATITUDE, NULL), NULL, NULL))
     </update>
 
     <select id="findNearbyUsers" resultType="com.pingo.dto.profile.MainProfileResponseDTO">
