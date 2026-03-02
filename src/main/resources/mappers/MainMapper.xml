@@ -8,12 +8,16 @@
         U."userName",
         UI."userBirth",
         '접속중' AS "status",
-        -- 거리를 계산하되 필터링은 하지 않음 (단위: KM)
+        -- 수학 공식(Haversine)으로 거리 계산 (안전한 방식)
         ROUND(
-        SDO_GEOM.SDO_DISTANCE(
-        YOUR_LOC."LOCATION",
-        (SELECT "LOCATION" FROM "USER_LOCATIONS" WHERE "USERNO" = #{userNo}),
-        0.005, 'unit=KM'
+        6371 * ACOS(
+        LEAST(1.0, GREATEST(-1.0,
+        COS(MY_LOC.LATITUDE * 0.0174532925)
+        * COS(YOUR_LOC.LATITUDE * 0.0174532925)
+        * COS((YOUR_LOC.LONGITUDE - MY_LOC.LONGITUDE) * 0.0174532925)
+        + SIN(MY_LOC.LATITUDE * 0.0174532925)
+        * SIN(YOUR_LOC.LATITUDE * 0.0174532925)
+        ))
         ), 1
         ) AS "distance",
         (
@@ -24,7 +28,13 @@
         FROM "users" U
         JOIN "userInfo" UI ON U."userNo" = UI."userNo"
         JOIN "USER_LOCATIONS" YOUR_LOC ON U."userNo" = YOUR_LOC."USERNO"
+        INNER JOIN (
+        SELECT LATITUDE, LONGITUDE
+        FROM "USER_LOCATIONS"
+        WHERE "USERNO" = #{userNo}
+        ) MY_LOC ON 1=1
         WHERE U."userNo" != #{userNo}
+        -- 필터링 해제 상태 유지 (데이터 확인용)
         ORDER BY "distance" ASC
     </select>
 </mapper>
