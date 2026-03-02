@@ -8,7 +8,7 @@
         U."userName",
         UI."userBirth",
         '접속중' AS "status",
-        -- [거리 계산] SDO_GEOM.SDO_DISTANCE를 사용하여 오차 없는 계산 (단위: KM)
+        -- [거리 계산] SDO_GEOM.SDO_DISTANCE 사용
         ROUND(
         SDO_GEOM.SDO_DISTANCE(
         YOUR_LOC."LOCATION",
@@ -28,22 +28,19 @@
         JOIN "USER_LOCATIONS" YOUR_LOC ON U."userNo" = YOUR_LOC."USERNO"
         WHERE U."userNo" != #{userNo}
 
-        -- [필터 1] 성별 필터링 (테스트를 위해 잠시 주석 처리하거나, 데이터가 충분하면 유지하세요)
-        -- AND U."userGender" != (SELECT "userGender" FROM "users" WHERE "userNo" = #{userNo})
-
-        -- [필터 2] 내가 이미 스와이프한 사람은 제외
+        -- [필터 1] 내가 이미 스와이프한 사람은 제외
         AND NOT EXISTS (
         SELECT 1 FROM "swipe" S
         WHERE S."fromUserNo" = #{userNo} AND S."toUserNo" = U."userNo"
         )
 
-        -- [필터 3] 내가 차단한 사람 제외
+        -- [필터 2] 내가 차단한 사람 제외
         AND NOT EXISTS (
         SELECT 1 FROM "userBlock" B
         WHERE B."fromUserNo" = #{userNo} AND B."toUserNo" = U."userNo"
         )
 
-        -- [핵심] 거리 필터링 (공간 연산 활용)
+        -- [핵심] 거리 필터링 (distanceKm 파라미터를 정확히 매칭)
         AND SDO_GEOM.SDO_DISTANCE(
         YOUR_LOC."LOCATION",
         (SELECT "LOCATION" FROM "USER_LOCATIONS" WHERE "USERNO" = #{userNo}),
