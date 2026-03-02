@@ -7,8 +7,10 @@
         U."userNo",
         U."userName",
         UI."userBirth",
+        -- 생년월일로 나이 계산 (만 나이 기준 예시)
+        FLOOR(MONTHS_BETWEEN(TRUNC(SYSDATE), TO_DATE(UI."userBirth", 'YYYY-MM-DD')) / 12) AS "age",
         '접속중' AS "status",
-        -- 수학 공식(Haversine)으로 거리 계산 (안전한 방식)
+        -- 1. 거리 계산 (Haversine)
         ROUND(
         6371 * ACOS(
         LEAST(1.0, GREATEST(-1.0,
@@ -19,11 +21,12 @@
         * SIN(YOUR_LOC.LATITUDE * 0.0174532925)
         ))
         ), 1
-        ) AS "distance",
-        (
-        SELECT LISTAGG(IMG."imageUrl", ',') WITHIN GROUP (ORDER BY IMG."imageProfile" DESC, IMG."imageNo")
-        FROM "userImage" IMG
-        WHERE IMG."userNo" = U."userNo"
+        ) AS "distance", -- 💡 별칭 "distance" 추가 필수
+        -- 2. 이미지 리스트 (COALESCE 앞에 쉼표 추가)
+        COALESCE(
+        (SELECT LISTAGG(IMG."imageUrl", ',') WITHIN GROUP (ORDER BY IMG."imageProfile" DESC)
+        FROM "userImage" IMG WHERE IMG."userNo" = U."userNo"),
+        ''
         ) AS "images"
         FROM "users" U
         JOIN "userInfo" UI ON U."userNo" = UI."userNo"
@@ -34,7 +37,7 @@
         WHERE "USERNO" = #{userNo}
         ) MY_LOC ON 1=1
         WHERE U."userNo" != #{userNo}
-        -- 필터링 해제 상태 유지 (데이터 확인용)
+        -- 필터링 해제 상태 유지 (데이터 확인 후 나중에 거리/성별 조건 추가)
         ORDER BY "distance" ASC
     </select>
 </mapper>

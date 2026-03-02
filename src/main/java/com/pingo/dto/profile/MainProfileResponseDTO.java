@@ -49,6 +49,21 @@ public class MainProfileResponseDTO {
 
     // images를 List<String>으로 변환하는 유틸리티 메서드 (, 으로 구분된 이미지 나눠서 리스트에 삽입)
     public void getImagesAsList() {
-        this.ImageList = (images == null || images.isEmpty()) ? List.of() : Arrays.asList(images.split(","));
+        if (images == null || images.isEmpty()) {
+            this.ImageList = List.of();
+            return;
+        }
+
+        this.ImageList = Arrays.stream(images.split(","))
+                .map(url -> {
+                    url = url.trim();
+                    // 💡 이미 외부 링크(http)인 경우 가공하지 않음
+                    if (url.startsWith("http")) {
+                        return url;
+                    }
+                    // 💡 파일명인 경우에만 서버 경로 접두사 추가
+                    return "http://43.200.7.166:8080/pingo/uploads/" + url;
+                })
+                .toList();
     }
 }
