@@ -37,15 +37,18 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
                 .authorizeHttpRequests(auth -> auth
-                        // 1. Preflight 요청 허용
+                        // 1. OPTIONS 요청 무조건 허용 (CORS 필수)
                         .requestMatchers(CorsUtils::isPreFlightRequest).permitAll()
 
-                        // 2. 허용 경로를 각각 명시 (문법 오류 수정)
-                        // 앞에 /pingo가 붙을 때와 안 붙을 때를 모두 허용
-                        .requestMatchers("/pingo/permit/**", "/permit/**").permitAll()
+                        // 2. 로그인/회원가입 경로 허용 (가장 안전한 매칭 방식)
+                        // context-path 설정 유무와 관계없이 permit 폴더 하위는 모두 열어둡니다.
+                        .requestMatchers("/pingo/permit/**").permitAll()
+                        .requestMatchers("/permit/**").permitAll()
 
-                        // 자동 로그인 및 기타 설정
+                        // 3. 특정 인증 필요 경로
                         .requestMatchers("/auto-signin").authenticated()
+
+                        // 4. 그 외 모든 요청
                         .anyRequest().authenticated()
                 );
 
