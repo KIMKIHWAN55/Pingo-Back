@@ -3,7 +3,6 @@ package com.pingo.config;
 import com.pingo.mapper.MembershipMapper;
 import com.pingo.security.jwt.JwtAuthenticationFilter;
 import com.pingo.security.jwt.JwtProvider;
-import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -15,12 +14,13 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.web.cors.CorsConfiguration; // 추가됨
-import org.springframework.web.cors.CorsConfigurationSource; // 추가됨
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource; // 추가됨
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.web.cors.CorsUtils;
 
-import java.util.Arrays; // 추가됨
-import java.util.Collections; // 추가됨
+import java.util.Arrays;
+import java.util.Collections;
 
 @RequiredArgsConstructor
 @Configuration
@@ -31,51 +31,61 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                // [1] CORS 설정 활성화 (가장 먼저 설정하는 것이 좋음)
+                // 1. CORS 설정 연결
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 
-                .csrf(csrf -> csrf.disable()) // CSRF 비활성화
+                // 2. CSRF 비활성화 (Stateless API이므로)
+                .csrf(csrf -> csrf.disable())
 
-                // 토큰 검사 필터 등록
+                // 3. JWT 필터 설정
                 .addFilterBefore(new JwtAuthenticationFilter(jwtProvider, membershipMapper), UsernamePasswordAuthenticationFilter.class)
 
+                // 4. 세션 정책: 사용 안 함
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
+                // 5. 요청 권한 설정
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/permit/**").permitAll()
+                        // 브라우저의 Preflight(OPTIONS) 요청은 무조건 허용
+                        .requestMatchers(CorsUtils::isPreFlightRequest).permitAll()
+
+                        // /pingo/permit/이나 /permit/으로 시작하는 경로는 로그인 없이 허용
+                        .requestMatchers("/**/permit/**", "/permit/**").permitAll()
+
+                        // 자동 로그인은 필터에서 걸러지므로 인증 필요로 설정
                         .requestMatchers("/auto-signin").authenticated()
+
+                        // 나머지는 모두 인증 필요
                         .anyRequest().authenticated()
                 );
 
         return http.build();
     }
 
-    // [2] CORS 허용 규칙을 정의하는 Bean
+    // CORS 상세 설정 Bean
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        // 허용할 프론트엔드 도메인 (S3 주소 및 로컬 테스트용)
+        // 프론트엔드 S3 주소 허용
         configuration.setAllowedOrigins(Arrays.asList(
-                "http://pingo-front-hosting.s3-website.ap-northeast-2.amazonaws.com", // S3 주소 (필수)
-                "http://localhost:3000", // 로컬 리액트/웹 테스트용 (필요시)
-                "http://localhost:8080"  // 로컬 테스트용
+                "http://pingo-front-hosting.s3-website.ap-northeast-2.amazonaws.com",
+                "http://localhost:3000",
+                "http://localhost:8080"
         ));
 
-        // 허용할 HTTP 메서드
+        // 모든 HTTP 메서드 허용
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
 
-        // 허용할 헤더 (모두 허용)
+        // 모든 헤더 허용
         configuration.setAllowedHeaders(Collections.singletonList("*"));
 
-        // [중요] 클라이언트(프론트)에서 헤더를 읽을 수 있게 허용 (JWT 토큰 등)
+        // 프론트에서 Authorization 헤더를 읽을 수 있도록 노출
         configuration.setExposedHeaders(Arrays.asList("Authorization", "Authorization-refresh"));
 
-        // 자격 증명 허용 (쿠키, 인증 헤더 등)
+        // 쿠키 및 자격 증명 허용
         configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        // 모든 경로(/**)에 대해 위 설정을 적용
         source.registerCorsConfiguration("/**", configuration);
         return source;
     }
