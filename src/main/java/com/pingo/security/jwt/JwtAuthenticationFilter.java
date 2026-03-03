@@ -31,33 +31,21 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+        // 요청 주소에서 마지막 문자열 추출
         String uri = request.getRequestURI();
-
-        // [1] 안전장치: 인증이 필요 없는 경로(로그인, 웹소켓, 이미지, 정적파일)는 필터 로직을 태우지 않고 즉시 통과
-        // 이 코드가 있어야 S3 웹 접속 시 500 에러나 403 에러가 발생하지 않습니다.
-        if (uri.contains("/permit/") || uri.contains("/ws") || uri.contains("/images/") || uri.contains("/static/") || uri.contains("/css/") || uri.contains("/js/")) {
-            filterChain.doFilter(request, response);
-            return;
-        }
-
-        // [2] 경로 추출 로직 (안전하게 수정됨)
-        // uri가 "/pingo/auto-signin" 일 때 "/auto-signin"만 추출하기 위함
-        String path = "";
-        int lastSlashIndex = uri.lastIndexOf("/");
-        if (lastSlashIndex != -1) {
-            path = uri.substring(lastSlashIndex);
-        }
+        int i = uri.lastIndexOf("/");
+        String path = uri.substring(i);
 
         // 토큰 추출
         String token = request.getHeader(AUTH_HEADER);
 
-        // 토큰이 있는 경우만 검증 로직 수행
-        if (token != null && !token.isEmpty()) {
+        // 토큰 검사
+        if (token != null) {
+
             try {
-                // 토큰 유효성 검사
                 jwtProvider.validateToken(token);
 
-                // [3] 자동 로그인 로직
+                // 자동 로그인 체크 (특정 URL 요청일 때만 수행)
                 if (path.equals("/auto-signin")) {
                     log.info("doFilterInternal...자동 로그인 체크 감지");
 
@@ -74,30 +62,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                     String jsonResponse;
 
-                    // [수정 포인트] expDate가 있을 때와 없을 때를 명확히 분기하여 jsonResponse 생성
                     if (userMembership.isPresent()) {
                         LocalDateTime expDate = userMembership.get().getExpDate();
-                        // expDate 변수를 여기서 바로 사용
-                        jsonResponse = String.format(
-                                "{ \"data\": { \"message\": \"자동 로그인 성공\", \"userNo\": \"%s\", \"userRole\": \"%s\", \"expDate\": \"%s\" } }",
-                                userNo, userRole, expDate.toString()
-                        );
+                        jsonResponse = "{ \"data\": { \"message\": \"자동 로그인 성공\", \"userNo\": \"" + userNo + "\", \"userRole\": \"" + userRole + "\", \"expDate\": \"" + expDate + "\" } }";
                     } else {
-                        // expDate가 없는 경우
-                        jsonResponse = String.format(
-                                "{ \"data\": { \"message\": \"자동 로그인 성공\", \"userNo\": \"%s\", \"userRole\": \"%s\" } }",
-                                userNo, userRole
-                        );
+                        jsonResponse = "{ \"data\": { \"message\": \"자동 로그인 성공\", \"userNo\": \"" + userNo + "\", \"userRole\": \"" + userRole + "\" } }";
                     }
 
-                    // 응답 후 종료
+                    // JSON 데이터 생성
                     response.getWriter().write(jsonResponse);
                     return;
                 }
 
-                // ---------------------------------------------------------
-                // [4] 리프레쉬 토큰 로직 (기존 기능 유지)
-                // ---------------------------------------------------------
+                // refresh 요청일 경우(새로운 access token 발급 요청)
                 if (path.equals("/refresh")) {
                     log.info("doFilterInternal...리프레쉬 토큰 감지");
 
@@ -117,19 +94,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     return;
                 }
 
-                // [5] 시큐리티 인증 처리 (일반 요청일 때)
-                Authentication authentication = jwtProvider.getAuthentication(token);
-                SecurityContextHolder.getContext().setAuthentication(authentication);
-                log.info("doFilterInternal...시큐리티 인증 객체 저장 완료: {}", path);
-
             } catch (JwtMyException e) {
-                // 토큰 에러 발생 시 응답 처리
                 e.sendResponseError(response);
                 return;
             }
-        }
+            // 시큐리티 인증 처리
+            Authentication authentication = jwtProvider.getAuthentication(token);
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+            log.info("doFilterInternal...시큐리티 처리 완료");
 
-        // 다음 필터로 진행
+        }
+        log.info("doFilterInternal...JWT토큰 인증 완료");
+
+        // 다음 필터 이동
         filterChain.doFilter(request, response);
     }
 }
