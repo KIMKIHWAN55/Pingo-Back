@@ -3,7 +3,6 @@ package com.pingo.config;
 import com.pingo.mapper.MembershipMapper;
 import com.pingo.security.jwt.JwtAuthenticationFilter;
 import com.pingo.security.jwt.JwtProvider;
-import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -15,59 +14,79 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.web.cors.CorsUtils;
+
+import java.util.Arrays;
+import java.util.Collections;
+
 @RequiredArgsConstructor
-@Configuration // Spring Security 설정 파일임을 나타내는 어노테이션
+@Configuration
 public class SecurityConfig {
     private final JwtProvider jwtProvider;
     private final MembershipMapper membershipMapper;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        // HttpSecurity 안에서 쓸 수 있는 속성 10분 안에 모두 찾아보고 설정할 것
         http
+                // [1] CORS 활성화 (S3 웹 접속 필수)
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+
                 .csrf(csrf -> csrf.disable())
-                // CSRF 보호 기능 비활성화 (REST API에서는 일반적으로 CSRF를 사용하지 않음)
-                // Flutter와 같은 프론트엔드에서 요청을 보낼 때 CSRF 토큰이 없기 때문에 비활성화해야 함
-
-                // 토큰 검사 필터 등록
                 .addFilterBefore(new JwtAuthenticationFilter(jwtProvider, membershipMapper), UsernamePasswordAuthenticationFilter.class)
-
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                // 세션을 사용하지 않도록 설정 (JWT 기반 인증을 사용하기 때문에 필요)
-                // STATELESS 모드에서는 로그인 시 세션을 생성하지 않음
-
-                //.httpBasic(withDefaults())    // HTTP Basic 인증 설정(JWT에서는 보통 사용 X)
-
-                // 로그아웃 설정
-//                .logout(logout -> logout
-//                        .logoutUrl("/auth/logout") // 로그아웃 URL 지정
-//                        .logoutSuccessHandler((request, response, authentication) -> {
-//                            response.setStatus(HttpServletResponse.SC_OK);
-//                        })
-//                )
 
                 .authorizeHttpRequests(auth -> auth
-                        // "/permit/**" 경로로 들어오는 요청은 인증 없이 접근 가능하도록 설정 (로그인, 회원가입 등)
-                                .requestMatchers("/permit/**").permitAll()
-                                .requestMatchers("/auto-signin").authenticated() // 자동 로그인은 인증된 사용자만 접근 가능
+                        // [2] 웹 브라우저 통신 필수 (Preflight)
+                        .requestMatchers(CorsUtils::isPreFlightRequest).permitAll()
 
-                                .anyRequest().authenticated()   // 그 외의 모든 요청은 인증된 사용자만 접근 가능
+                        // [3] 로그인, 회원가입 관련 경로 (context-path 고려해서 둘 다 등록)
+                        .requestMatchers("/permit/**", "/pingo/permit/**").permitAll()
+
+                        // [4] ★ 이미지 및 정적 리소스 경로 허용 (이거 없으면 이미지 깨짐) ★
+                        .requestMatchers("/images/**", "/pingo/images/**", "/static/**", "/css/**", "/js/**").permitAll()
+
+                        // [5] 웹소켓 연결 허용
+                        .requestMatchers("/ws/**", "/pingo/ws/**").permitAll()
+
+                        .requestMatchers("/auto-signin").authenticated()
+                        .anyRequest().authenticated()
                 );
 
         return http.build();
     }
 
     @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+
+        // S3 주소, 로컬, 에뮬레이터 모두 허용
+        configuration.setAllowedOrigins(Arrays.asList(
+                "http://pingo-front-hosting.s3-website.ap-northeast-2.amazonaws.com",
+                "http://localhost:3000",
+                "http://10.0.2.2:8080",
+                "http://localhost:8080"
+        ));
+
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
+        configuration.setAllowedHeaders(Collections.singletonList("*"));
+        configuration.setExposedHeaders(Arrays.asList("Authorization", "Authorization-refresh"));
+        configuration.setAllowCredentials(true);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
+    }
+
+    @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
-        // 비밀번호를 암호화하기 위한 BCryptPasswordEncoder 사용
-        // 사용자가 입력한 비밀번호를 DB의 해시된 비밀번호와 비교할 때 필요
     }
 
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig) throws Exception {
         return authConfig.getAuthenticationManager();
-        // AuthenticationManager는 인증을 담당하는 핵심 컴포넌트
-        // Spring Security에서 로그인 시 사용자의 아이디와 비밀번호를 검증하는 역할을 함
     }
 }
