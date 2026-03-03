@@ -31,30 +31,21 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                // 1. CORS 설정 연결
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-
-                // 2. CSRF 비활성화 (Stateless API이므로)
                 .csrf(csrf -> csrf.disable())
-
-                // 3. JWT 필터 설정
                 .addFilterBefore(new JwtAuthenticationFilter(jwtProvider, membershipMapper), UsernamePasswordAuthenticationFilter.class)
-
-                // 4. 세션 정책: 사용 안 함
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
-                // 5. 요청 권한 설정
                 .authorizeHttpRequests(auth -> auth
-                        // 브라우저의 Preflight(OPTIONS) 요청은 무조건 허용
+                        // 1. Preflight 요청 허용
                         .requestMatchers(CorsUtils::isPreFlightRequest).permitAll()
 
-                        // /pingo/permit/이나 /permit/으로 시작하는 경로는 로그인 없이 허용
-                        .requestMatchers("/**/permit/**", "/permit/**").permitAll()
+                        // 2. 허용 경로를 각각 명시 (문법 오류 수정)
+                        // 앞에 /pingo가 붙을 때와 안 붙을 때를 모두 허용
+                        .requestMatchers("/pingo/permit/**", "/permit/**").permitAll()
 
-                        // 자동 로그인은 필터에서 걸러지므로 인증 필요로 설정
+                        // 자동 로그인 및 기타 설정
                         .requestMatchers("/auto-signin").authenticated()
-
-                        // 나머지는 모두 인증 필요
                         .anyRequest().authenticated()
                 );
 
