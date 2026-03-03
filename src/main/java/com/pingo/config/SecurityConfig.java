@@ -33,22 +33,26 @@ public class SecurityConfig {
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())
+                // JWT 필터가 /permit/ 경로를 건너뛰도록 로직이 되어있는지 확인이 필요하지만,
+                // 일단 시큐리티 설정에서 최우선 순위로 개방합니다.
                 .addFilterBefore(new JwtAuthenticationFilter(jwtProvider, membershipMapper), UsernamePasswordAuthenticationFilter.class)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
                 .authorizeHttpRequests(auth -> auth
-                        // 1. OPTIONS 요청 무조건 허용 (CORS 필수)
+                        // 1. 브라우저의 OPTIONS(Preflight) 요청은 무조건 통과
                         .requestMatchers(CorsUtils::isPreFlightRequest).permitAll()
 
-                        // 2. 로그인/회원가입 경로 허용 (가장 안전한 매칭 방식)
-                        // context-path 설정 유무와 관계없이 permit 폴더 하위는 모두 열어둡니다.
-                        .requestMatchers("/pingo/permit/**").permitAll()
+                        // 2. 가장 확실한 매칭 규칙 (AntPathRequestMatcher 사용 권장되나 기본문자열로 충분)
+                        // context-path 설정이 /pingo라면, 시큐리티는 그 하위인 /permit/만 봅니다.
+                        // 혹시 몰라 두 경우를 모두 확실하게 등록합니다.
                         .requestMatchers("/permit/**").permitAll()
+                        .requestMatchers("/pingo/permit/**").permitAll()
 
-                        // 3. 특정 인증 필요 경로
+                        // 3. 정적 리소스나 에러 페이지 허용 (필요시)
+                        .requestMatchers("/error").permitAll()
+
+                        // 4. 인증이 필요한 경로
                         .requestMatchers("/auto-signin").authenticated()
-
-                        // 4. 그 외 모든 요청
                         .anyRequest().authenticated()
                 );
 
