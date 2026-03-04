@@ -3,13 +3,13 @@ package com.pingo.config;
 import com.pingo.mapper.MembershipMapper;
 import com.pingo.security.jwt.JwtAuthenticationFilter;
 import com.pingo.security.jwt.JwtProvider;
-import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -25,6 +25,7 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         // HttpSecurity 안에서 쓸 수 있는 속성 10분 안에 모두 찾아보고 설정할 것
         http
+                .cors(Customizer.withDefaults()) // WebMvcConfig의 addCorsMappings 설정을 사용
                 .csrf(csrf -> csrf.disable())
                 // CSRF 보호 기능 비활성화 (REST API에서는 일반적으로 CSRF를 사용하지 않음)
                 // Flutter와 같은 프론트엔드에서 요청을 보낼 때 CSRF 토큰이 없기 때문에 비활성화해야 함

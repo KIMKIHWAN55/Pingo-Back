@@ -64,6 +64,9 @@ server:
   servlet:
     context-path: /pingo
 
+cors:
+  allowed-origins: http://pingo-front-hosting.s3-website.ap-northeast-2.amazonaws.com
+
 logging:
   level:
     root: INFO

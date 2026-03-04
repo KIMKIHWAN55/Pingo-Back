@@ -11,9 +11,22 @@ public class WebMvcConfig implements WebMvcConfigurer {
 
     @Value("${file.upload.path}")
     private String resourcePath;
+
+    @Value("${cors.allowed-origins}")
+    private String allowedOrigins;
+
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        registry.addResourceHandler("/uploads/**").addResourceLocations("file:"+resourcePath);
+        registry.addResourceHandler("/uploads/**").addResourceLocations("file:" + resourcePath);
     }
 
+    @Override
+    public void addCorsMappings(CorsRegistry registry) {
+        registry.addMapping("/**")
+                .allowedOrigins(allowedOrigins)
+                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                .allowedHeaders("*")
+                .allowCredentials(true)
+                .maxAge(3600);
+    }
 }
