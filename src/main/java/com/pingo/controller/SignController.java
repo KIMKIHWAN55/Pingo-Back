@@ -24,12 +24,12 @@ public class SignController {
     public ResponseEntity<?> login(@RequestBody Map<String, String> userInfo) {
         log.info("Login attempt - userId: {}", userInfo.get("userId"));
 
-        // 위치 정보 추가
-        double latitude = Double.parseDouble(userInfo.get("latitude"));
-        double longitude = Double.parseDouble(userInfo.get("longitude"));
+        // 위치 정보 추가 (웹 환경에서 미전송 시 기본값 0.0 사용)
+        double latitude = userInfo.get("latitude") != null ? Double.parseDouble(userInfo.get("latitude")) : 0.0;
+        double longitude = userInfo.get("longitude") != null ? Double.parseDouble(userInfo.get("longitude")) : 0.0;
 
         // 로그인 서비스 호출 후 응답 받아오기
-        return signService.signInProcess(userInfo.get("userId"), userInfo.get("userPw"),latitude,longitude);
+        return signService.signInProcess(userInfo.get("userId"), userInfo.get("userPw"), latitude, longitude);
     }
 
     // 회원가입시 아이디 중복 검증
