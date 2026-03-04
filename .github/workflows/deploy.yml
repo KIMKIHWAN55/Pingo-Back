@@ -50,5 +50,11 @@ jobs:
             # 새 이미지 받기
             docker pull ${{ secrets.DOCKER_USERNAME }}/pingo-back:latest
             
-            # 새 컨테이너 실행 (환경변수나 포트 설정은 상황에 맞게 수정)
-            docker run -d -p 8080:8080 --name pingo-back ${{ secrets.DOCKER_USERNAME }}/pingo-back:latest
+            # 업로드 디렉토리 생성 (없을 경우)
+            mkdir -p /home/ubuntu/pingo-uploads
+
+            # 새 컨테이너 실행 (-v 옵션으로 이미지 파일을 컨테이너 외부에 영구 저장)
+            docker run -d -p 8080:8080 \
+              -v /home/ubuntu/pingo-uploads:/app/uploads \
+              --name pingo-back \
+              ${{ secrets.DOCKER_USERNAME }}/pingo-back:latest

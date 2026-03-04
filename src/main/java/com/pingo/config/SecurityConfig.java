@@ -4,6 +4,7 @@ import com.pingo.mapper.MembershipMapper;
 import com.pingo.security.jwt.JwtAuthenticationFilter;
 import com.pingo.security.jwt.JwtProvider;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -15,17 +16,26 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.List;
+
 @RequiredArgsConstructor
 @Configuration // Spring Security 설정 파일임을 나타내는 어노테이션
 public class SecurityConfig {
     private final JwtProvider jwtProvider;
     private final MembershipMapper membershipMapper;
 
+    @Value("${cors.allowed-origins}")
+    private String allowedOrigins;
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         // HttpSecurity 안에서 쓸 수 있는 속성 10분 안에 모두 찾아보고 설정할 것
         http
-                .cors(Customizer.withDefaults()) // WebMvcConfig의 addCorsMappings 설정을 사용
+                .cors(Customizer.withDefaults()) // corsConfigurationSource 빈을 사용
                 .csrf(csrf -> csrf.disable())
                 // CSRF 보호 기능 비활성화 (REST API에서는 일반적으로 CSRF를 사용하지 않음)
                 // Flutter와 같은 프론트엔드에서 요청을 보낼 때 CSRF 토큰이 없기 때문에 비활성화해야 함
@@ -70,5 +80,19 @@ public class SecurityConfig {
         return authConfig.getAuthenticationManager();
         // AuthenticationManager는 인증을 담당하는 핵심 컴포넌트
         // Spring Security에서 로그인 시 사용자의 아이디와 비밀번호를 검증하는 역할을 함
+    }
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration config = new CorsConfiguration();
+        config.setAllowedOrigins(List.of(allowedOrigins));
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        config.setAllowedHeaders(List.of("*"));
+        config.setAllowCredentials(true);
+        config.setMaxAge(3600L);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+        return source;
     }
 }
